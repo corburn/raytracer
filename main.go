@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"runtime"
 )
@@ -67,9 +68,16 @@ func main() {
 }
 
 func trace(point, dir Vector3, objects []Object) (o Object, t float64) {
+	t = math.Inf(0)
+	for _, object := range objects {
+		if ti := object.Intersect(point, dir); ti < t {
+			t = ti
+			o = object
+		}
+	}
 	return
 }
 
 func shade(o Object, point, dir Vector3, objects []Object, lights []*Light, depth uint) (color RGB) {
-	return
+	return o.Color()
 }
