@@ -62,9 +62,22 @@ func (s *Sphere) Color() RGB {
 	return s.color
 }
 
+// Intersect returns the magnitude of the nearest intersect or Inf
+// if it doesn't exist
 func (s *Sphere) Intersect(pt, ur Vector3) float64 {
-	// TODO
-	return 0.0
+	a := ur.Dot(ur)
+	b := ur.Scale(2).Dot(pt.Sub(s.point))
+	c := pt.Sub(s.point).Dot(point.Sub(s.Point)) - s.radius*s.radius
+	disc := b*b - 4*a*c
+	if disc < 0 {
+		return math.Inf(0)
+	}
+	t0 := (-b - math.Sqrt(disc)) / 2
+	if t0 > 0 {
+		return t0
+	}
+	t1 := (-b + math.Sqrt(disc)) / 2
+	return t1
 }
 
 func (s *Sphere) Normal(pt Vector3) Vector3 {
