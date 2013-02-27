@@ -79,7 +79,3 @@ func (s *Sphere) Point() Vector3 {
 type RGB struct {
 	r, g, b uint8
 }
-
-type Vector3 struct {
-	x, y, z float64
-}
