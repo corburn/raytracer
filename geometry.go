@@ -1,5 +1,9 @@
 package main
 
+import (
+	"math"
+)
+
 var (
 	camera Vector3  = Vector3{0, 0, .5}
 	lights []*Light = []*Light{
@@ -40,8 +44,10 @@ func (p *Plane) Color() RGB {
 }
 
 func (p *Plane) Intersect(pt, ur Vector3) float64 {
-	// TODO
-	return 0.0
+	if t := p.normal.Dot(p.point.Sub(pt)) / p.normal.Dot(ur); t >= 0 {
+		return t
+	}
+	return math.Inf(0)
 }
 
 func (p *Plane) Normal(pt Vector3) Vector3 {
@@ -67,7 +73,7 @@ func (s *Sphere) Color() RGB {
 func (s *Sphere) Intersect(pt, ur Vector3) float64 {
 	a := ur.Dot(ur)
 	b := ur.Scale(2).Dot(pt.Sub(s.point))
-	c := pt.Sub(s.point).Dot(point.Sub(s.Point)) - s.radius*s.radius
+	c := pt.Sub(s.point).Dot(pt.Sub(s.point)) - s.radius*s.radius
 	disc := b*b - 4*a*c
 	if disc < 0 {
 		return math.Inf(0)
@@ -81,8 +87,7 @@ func (s *Sphere) Intersect(pt, ur Vector3) float64 {
 }
 
 func (s *Sphere) Normal(pt Vector3) Vector3 {
-	// TODO
-	return Vector3{}
+	return pt.Sub(s.point).Unit()
 }
 
 func (s *Sphere) Point() Vector3 {
