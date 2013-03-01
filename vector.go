@@ -29,7 +29,7 @@ func (a Vector3) Cross(b Vector3) Vector3 {
 	return Vector3{a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x}
 }
 
- // Dot returns the dot product of the vector and given vector
+// Dot returns the dot product of the vector and given vector
 // a*b=||A||||b||cos(theta) where theta is the smallest angle
 // between the vectors.
 // If a and b are unit vectors, ||a||||b|| = 1 and cos(theta) = a*b
@@ -52,7 +52,8 @@ func (a Vector3) Magnitude() float64 {
 // defined by point and normal
 func (a Vector3) Reflect(point, normal Vector3) Vector3 {
 	// v' = v - 2(n*v)n
-	return a.Sub(normal.Scale(normal.Dot(a) * 2))
+	// TODO Add instead of Sub?
+	return a.Sub(normal.Scale(-2 * a.Dot(normal))).Unit()
 }
 
 // Scale returns the vector scaled by the scalar c

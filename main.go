@@ -10,12 +10,21 @@ import (
 	"runtime"
 )
 
+const (
+	MAX_REFLECT_DEPTH = 7
+	SPECULAR_SPREAD   = 5
+)
+
+var (
+	AMBIENT RGB = RGB{255, 255, 255}.Scale(.15)
+)
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	pixwidth := flag.Int("w", 500, "Rendered image pixel width")
-	_ = pixwidth
 	outfile := flag.String("o", "out.ppm", "Rendered image filename")
+	flag.Parse()
 
 	f, err := os.Create(*outfile)
 	if err != nil {
@@ -50,11 +59,11 @@ func main() {
 				x := -(width / 2) + (pw * (float64(j) + .5))
 				// z coord is on screen
 				z := 0.0
-				point := Vector3{x, y, z}
-				dir := point.Sub(camera).Unit()
-				if o, _ := trace(point, dir, objects); o != nil {
+				pt := Vector3{x, y, z}
+				ur := pt.Sub(camera).Unit()
+				if o, _ := trace(pt, ur, objects); o != nil {
 					// pixel colored by object hit
-					line[j] = shade(o, point, dir, objects, lights, 0)
+					line[j] = shade(o, pt, ur, objects, lights, 0)
 				}
 			}
 			memrend[i] = line
@@ -67,10 +76,10 @@ func main() {
 	}
 }
 
-func trace(point, dir Vector3, objects []Object) (o Object, t float64) {
+func trace(pt, ur Vector3, objects []Object) (o Object, t float64) {
 	t = math.Inf(0)
 	for _, object := range objects {
-		if ti := object.Intersect(point, dir); ti < t {
+		if ti := object.Intersect(pt, ur); ti < t {
 			t = ti
 			o = object
 		}
@@ -78,6 +87,32 @@ func trace(point, dir Vector3, objects []Object) (o Object, t float64) {
 	return
 }
 
-func shade(o Object, point, dir Vector3, objects []Object, lights []*Light, depth uint) (color RGB) {
-	return o.Color()
+func shade(o Object, pt, ur Vector3, objects []Object, lights []*Light, depth uint) (color RGB) {
+	if depth > MAX_REFLECT_DEPTH {
+		return RGB{}
+	}
+	vr := ur.Reflect(pt, o.Normal(pt))
+	if o, t := trace(pt, vr, objects); t == math.Inf(0) {
+		return RGB{} // background color
+	} else {
+		mColor := shade(o, pt.Add(vr.Scale(t)), vr, objects, lights, depth+1)
+		color = directShade(o, pt, ur, vr.Scale(-1), mColor)
+	}
+	for _, light := range lights {
+		ul := pt.Sub(light.Point())
+		ul = ul.Unit()
+		if om, _ := trace(light.Point(), ul, objects); o == om {
+			color.Add(directShade(o, pt, ur, light.Point(), light.Color()))
+		}
+	}
+	return color
+}
+
+func directShade(o Object, pt, ur, ul Vector3, cl RGB) (radiance RGB) {
+	view := ur.Scale(-1)
+	n := o.Normal(pt)
+	vr := ul.Reflect(pt, n)
+	diffuse := cl.Mul(o.Color()).Scale(-1 * ul.Dot(n) * o.Diffuse())
+	specular := cl.Scale(math.Pow(vr.Dot(view), SPECULAR_SPREAD) * o.Specular())
+	return AMBIENT.Add(diffuse).Add(specular)
 }
