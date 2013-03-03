@@ -76,6 +76,10 @@ func main() {
 	}
 }
 
+// trace returns the first object hit by the ray and the distance to it.
+// pt - ray origin
+// ur - ray unit vector
+// objects - all objects in the scene
 func trace(pt, ur Vector3, objects []Object) (o Object, t float64) {
 	t = math.Inf(0)
 	for _, object := range objects {
@@ -87,20 +91,24 @@ func trace(pt, ur Vector3, objects []Object) (o Object, t float64) {
 	return
 }
 
+// shade recursively returns the shade of each pixel  
 func shade(o Object, pt, ur Vector3, objects []Object, lights []*Light, depth uint) (color RGB) {
 	if depth > MAX_REFLECT_DEPTH {
 		return RGB{}
 	}
 	vr := ur.Reflect(pt, o.Normal(pt))
+	// TODO: t never equals Inf. Is this because of the interface?
 	if o, t := trace(pt, vr, objects); t == math.Inf(0) {
-		return RGB{} // background color
+		// background color
+		return RGB{}
 	} else {
 		mColor := shade(o, pt.Add(vr.Scale(t)), vr, objects, lights, depth+1)
 		color = directShade(o, pt, ur, vr.Scale(-1), mColor)
 	}
 	for _, light := range lights {
-		ul := pt.Sub(light.Point())
-		ul = ul.Unit()
+		ul := pt.Sub(light.Point()).Unit()
+		// Trace a ray from the light source to the object. If the first object hit is
+		// the object, add the light to the pixel.
 		if om, _ := trace(light.Point(), ul, objects); o == om {
 			color.Add(directShade(o, pt, ur, light.Point(), light.Color()))
 		}
@@ -108,9 +116,11 @@ func shade(o Object, pt, ur Vector3, objects []Object, lights []*Light, depth ui
 	return color
 }
 
+// directShade returns the sum of all light from a pixel
 func directShade(o Object, pt, ur, ul Vector3, cl RGB) (radiance RGB) {
 	view := ur.Scale(-1)
 	n := o.Normal(pt)
+	// reflected ray
 	vr := ul.Reflect(pt, n)
 	diffuse := cl.Mul(o.Color()).Scale(-1 * ul.Dot(n) * o.Diffuse())
 	specular := cl.Scale(math.Pow(vr.Dot(view), SPECULAR_SPREAD) * o.Specular())
